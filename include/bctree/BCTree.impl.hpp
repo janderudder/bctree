@@ -4,6 +4,17 @@
 
 ////////////////////////////////////////////////////////////////////////////////
  template <typename T>
+BCTree<T>::NodeRelations::NodeRelations(index_t p, index_t c1, index_t c2)
+noexcept:
+    parent   {p},
+    children {c1, c2}
+ {
+ }
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+ template <typename T>
 auto BCTree<T>::node(index_t index) const -> NodeHandler
 {
     return {this, index};
@@ -36,37 +47,12 @@ auto BCTree<T>::contains(NodeHandler const& node) const -> bool
 
 
  template <typename T>
-auto BCTree<T>::insert(T&& value, index_t parent_index) -> NodeHandler
+auto BCTree<T>::insert(index_t parent_index, T value) -> NodeHandler
 {
-    m_values.push_back(std::forward<T>(value));
+    m_values.push_back(std::move(value));
 
-    auto const node_index = m_values.size()-1;
-
-    if (node_index == 0)
-    {
-        m_relations.push_back({null, null, null});
-    }
-
-    else if (parent_index < m_values.size())
-    {
-        auto& relations = m_relations[parent_index];
-
-        if (relations.child1 == null) {
-            relations.child1 = node_index;
-        }
-        else if (relations.child2 == null) {
-            relations.child2 = node_index;
-        }
-        else {
-            throw 0;
-        }
-
-        m_relations.push_back({parent_index, null, null});
-    }
-    else
-    {
-        throw 0;
-    }
+    auto const node_index = m_relations.size();
+    _set_relations(node_index, parent_index);
 
     return NodeHandler{this, node_index};
 }
@@ -74,9 +60,64 @@ auto BCTree<T>::insert(T&& value, index_t parent_index) -> NodeHandler
 
 
  template <typename T>
-auto BCTree<T>::insert(T&& value, NodeHandler const& parent) -> NodeHandler
+auto BCTree<T>::insert(NodeHandler const& parent, T value) -> NodeHandler
 {
-    return insert(std::forward<T>(value), parent.m_index);
+    return insert(parent.m_index, std::move(value));
+}
+
+
+
+ template <typename T>
+    template <typename...Args>
+auto BCTree<T>::emplace(index_t parent_index, Args&&... args) -> NodeHandler
+{
+    m_values.emplace_back(std::forward<Args>(args)...);
+
+    auto const node_index = m_relations.size();
+    _set_relations(node_index, parent_index);
+
+    return NodeHandler{this, node_index};
+}
+
+
+
+ template <typename T>
+    template <typename...Args>
+auto BCTree<T>::emplace(NodeHandler const& parent, Args&&... args) -> NodeHandler
+{
+    return emplace(parent.m_index, std::forward<Args>(args)...);
+}
+
+
+
+ template <typename T>
+void BCTree<T>::_set_relations(index_t node_index, index_t parent_index)
+{
+    if (node_index == 0)
+    {
+        m_relations.emplace_back(null, null, null);
+    }
+
+    else if (parent_index < m_relations.size())
+    {
+        auto& parent_relations = m_relations[parent_index];
+
+        if (parent_relations.children[0] == null) {
+            parent_relations.children[0] = node_index;
+        }
+        else if (parent_relations.children[1] == null) {
+            parent_relations.children[1] = node_index;
+        }
+        else {
+            throw 0;
+        }
+
+        m_relations.emplace_back(parent_index, null, null);
+    }
+    else
+    {
+        throw 0;
+    }
 }
 
 
@@ -141,14 +182,23 @@ auto BCTree<T>::NodeHandler::parent() const -> NodeHandler
  template <typename T>
 auto BCTree<T>::NodeHandler::children() const -> std::array<NodeHandler, 2>
 {
-    auto const& [parent, child1, child2] = m_tree->m_relations[m_index];
+    auto const& [child1, child2] = m_tree->m_relations[m_index].children;
     return {NodeHandler{m_tree, child1}, NodeHandler{m_tree, child2}};
 }
 
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::insert(T&& value) -> NodeHandler
+auto BCTree<T>::NodeHandler::insert(T value) -> NodeHandler
 {
-    return m_tree->insert(std::forward<T>(value), m_index);
+    return m_tree->insert(m_index, std::move(value));
+}
+
+
+
+ template <typename T>
+    template <typename...Args>
+auto BCTree<T>::NodeHandler::emplace(Args&&... args) -> NodeHandler
+{
+    return m_tree->emplace(m_index, std::forward<Args>(args)...);
 }

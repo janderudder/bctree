@@ -21,9 +21,9 @@ public:
 
 private:
     struct NodeRelations {
-        index_t parent;
-        index_t child1;
-        index_t child2;
+        index_t               parent;
+        std::array<index_t,2> children;
+        NodeRelations(index_t, index_t, index_t) noexcept;
     };
 
     std::vector<NodeRelations>  m_relations;
@@ -37,8 +37,17 @@ public:
     auto size() const -> size_t;
     auto contains(NodeHandler const& node) const -> bool;
 
-    auto insert(T&&, index_t parent) -> NodeHandler;
-    auto insert(T&&, NodeHandler const& parent) -> NodeHandler;
+    auto insert(index_t parent, T) -> NodeHandler;
+    auto insert(NodeHandler const& parent, T) -> NodeHandler;
+
+    template <typename...Args>
+    auto emplace(index_t parent, Args&&...) -> NodeHandler;
+
+    template <typename...Args>
+    auto emplace(NodeHandler const& parent, Args&&...) -> NodeHandler;
+
+private:
+    void _set_relations(index_t, index_t);
 
 };
 
@@ -63,7 +72,10 @@ public:
     auto parent()   const -> NodeHandler;
     auto children() const -> std::array<NodeHandler, 2>;
 
-    auto insert(T&&) -> NodeHandler;
+    auto insert(T) -> NodeHandler;
+
+    template <typename...Args>
+    auto emplace(Args&&...) -> NodeHandler;
 
     friend bool operator==(
         BCTree::NodeHandler const& lhs,

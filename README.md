@@ -12,6 +12,8 @@ This particular implementation keeps the nodes in a contiguous array allocated o
 
 It provides a `NodeHandler` nested class as an interface to manipulate individual nodes.
 
+Also it was developed in order to construct a tree by hand, so it doesn't insert nodes in proper place automatically. Instead, if a node tries to become child to an already full parent, the method throws.
+
 
 ## Usage
 
@@ -22,26 +24,26 @@ BCTree<std::string> tree;
 
 Insert root node. Must provide a null index as parent.
 ```cpp
-tree.insert("", tree.null);
+tree.insert(tree.null, "");
 ```
 
 Insert a new node. Must provide index of the parent node, here root.
 ```cpp
-tree.insert("child_1", 0);
+tree.insert(0, "child_1");
 ```
 
 It's simpler if we get a handler for the root node.
 ```cpp
 auto root = tree.node(0);
-tree.insert("child_1", root);
+tree.insert(root, "child_1");
 ```
 
 Even simpler, get the handler when the node is created.
 ```cpp
-auto root = tree.insert("", tree.null);
+auto root = tree.insert(tree.null, "");
 ```
 
-Using a node handler to insert an immediate child.
+Better yet to use a node handler to insert an immediate child.
 ```cpp
 root.insert("child_1");
 auto child_2 = root.insert("child_2");
