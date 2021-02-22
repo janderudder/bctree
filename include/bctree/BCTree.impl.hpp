@@ -1,4 +1,5 @@
 #include "bctree/BCTree.hpp"
+#include <stdexcept>
 
 
 
@@ -111,7 +112,12 @@ void BCTree<T>::_set_relations(index_t node_index, index_t parent_index)
             parent_relations.children[1] = node_index;
         }
         else {
-            throw 0;
+            using namespace std::string_literals;
+            throw std::logic_error{
+                "inserting a node (index "s + std::to_string(node_index)
+                + ") with an already full parent ("
+                + std::to_string(parent_index) + ") in BCTree"
+            };
         }
 
         m_relations.emplace_back(parent_index, null, null);
@@ -119,7 +125,12 @@ void BCTree<T>::_set_relations(index_t node_index, index_t parent_index)
 
     else
     {
-        throw 0;
+        using namespace std::string_literals;
+        throw std::logic_error{
+            "inserting a node (index "s + std::to_string(node_index)
+            + ") with invalid parent index (" + std::to_string(parent_index)
+            + ") in BCTree"
+        };
     }
 }
 
