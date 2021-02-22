@@ -44,7 +44,7 @@ auto root = tree.insert("", tree.null);
 Using a node handler to insert an immediate child.
 ```cpp
 root.insert("child_1");
-auto child2 = root.insert("child_2");
+auto child_2 = root.insert("child_2");
 ```
 
 Retrieve handlers to immediate children.
@@ -52,23 +52,25 @@ Retrieve handlers to immediate children.
 auto const root_children = root.children();
 ```
 
-Comparison of handlers is possible and returns false if they are not in the same tree.
+To know if a node is in a particular tree, we may test the following:
+```cpp
+auto const& the_tree = root.tree();
+
+if (the_tree.contains(child_2)) {
+    // `child_2` and `root` nodes are in the same tree
+}
+```
+
+Equality comparison of handlers is possible too. It tests that the two handlers refer to the same index in the same tree.
 ```cpp
 for (auto const child : root.children())
 {
-    if (child == child2) { // `child2` declared earlier
-        // `child2` is in the same tree as `root`
+    if (child == child_2) {
+        // this instance of `child` is `child_2`
     }
 }
 ```
 
-But we can know if a handler refers to a tree by testing the following:
-```cpp
-if (root.tree().contains(child2)) {
-    // we obtained a reference to the tree containing the `root` node,
-    // and we checked that this tree also contains the `child2` node.
-}
-```
 
 
 ## Extending the project
