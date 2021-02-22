@@ -113,6 +113,8 @@ class BCTree<T>::NodeHandlerConst : public BCTree<T>::NodeHandler
     NodeHandlerConst(BCTree const* t, index_t i) noexcept;
 
 public:
+    NodeHandlerConst(NodeHandlerMut const&) noexcept;
+    
     auto tree()     const -> BCTree const& override;
     auto index()    const -> index_t override;
     auto value()    const -> T const& override;

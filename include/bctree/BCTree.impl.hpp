@@ -102,10 +102,12 @@ void BCTree<T>::_set_relations(index_t node_index, index_t parent_index)
     {
         auto& parent_relations = m_relations[parent_index];
 
-        if (parent_relations.children[0] == null) {
+        if (parent_relations.children[0] == null)
+        {
             parent_relations.children[0] = node_index;
         }
-        else if (parent_relations.children[1] == null) {
+        else if (parent_relations.children[1] == null)
+        {
             parent_relations.children[1] = node_index;
         }
         else {
@@ -114,6 +116,7 @@ void BCTree<T>::_set_relations(index_t node_index, index_t parent_index)
 
         m_relations.emplace_back(parent_index, null, null);
     }
+
     else
     {
         throw 0;
@@ -228,6 +231,16 @@ BCTree<T>::NodeHandlerConst::NodeHandlerConst(BCTree const* t, index_t i)
 noexcept:
     m_index {i},
     m_tree  {t}
+{
+}
+
+
+
+ template <typename T>
+BCTree<T>::NodeHandlerConst::NodeHandlerConst(NodeHandlerMut const& mut)
+noexcept:
+    m_index {mut.index()},
+    m_tree  {&mut.tree()}
 {
 }
 
