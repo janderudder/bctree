@@ -31,20 +31,22 @@ private:
 
 public:
     class NodeHandler;
+    class NodeHandlerMut;
+    class NodeHandlerConst;
 
-    auto node(index_t) const -> NodeHandler;
-    auto node(index_t) -> NodeHandler;
+    auto node(index_t) const -> NodeHandlerConst;
+    auto node(index_t) -> NodeHandlerMut;
     auto size() const -> size_t;
     auto contains(NodeHandler const& node) const -> bool;
 
-    auto insert(index_t parent, T) -> NodeHandler;
-    auto insert(NodeHandler const& parent, T) -> NodeHandler;
+    auto insert(index_t parent, T) -> NodeHandlerMut;
+    auto insert(NodeHandler const& parent, T) -> NodeHandlerMut;
 
     template <typename...Args>
-    auto emplace(index_t parent, Args&&...) -> NodeHandler;
+    auto emplace(index_t parent, Args&&...) -> NodeHandlerMut;
 
     template <typename...Args>
-    auto emplace(NodeHandler const& parent, Args&&...) -> NodeHandler;
+    auto emplace(NodeHandler const& parent, Args&&...) -> NodeHandlerMut;
 
 private:
     void _set_relations(index_t, index_t);
@@ -55,34 +57,67 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-class BCTree<T>::NodeHandler
+struct BCTree<T>::NodeHandler
 {
-    BCTree* m_tree;
-    index_t m_index;
-
-    friend class BCTree<T>;
-    NodeHandler(BCTree* t, index_t i) noexcept;
-
-public:
-    auto tree()     const -> BCTree const&;
-    auto tree()           -> BCTree&;
-    auto index()    const -> index_t;
-    auto value()    const -> T const&;
-    auto value()          -> T&;
-    auto parent()   const -> NodeHandler;
-    auto children() const -> std::array<NodeHandler, 2>;
-
-    auto insert(T) -> NodeHandler;
-
-    template <typename...Args>
-    auto emplace(Args&&...) -> NodeHandler;
+    virtual auto tree()     const -> BCTree const& = 0;
+    virtual auto index()    const -> index_t = 0;
+    virtual auto value()    const -> T const& = 0;
+    virtual auto parent()   const -> NodeHandlerConst = 0;
+    virtual auto children() const -> std::array<NodeHandlerConst, 2> = 0;
 
     friend bool operator==(
         BCTree::NodeHandler const& lhs,
         BCTree::NodeHandler const& rhs
     ){
-        return lhs.m_tree == rhs.m_tree && lhs.m_index == rhs.m_index;
+        return &lhs.tree() == &rhs.tree() && lhs.index() == rhs.index();
     }
+};
+
+
+
+template <typename T>
+class BCTree<T>::NodeHandlerMut : public BCTree<T>::NodeHandler
+{
+    index_t m_index;
+    BCTree* m_tree;
+
+    friend class BCTree<T>;
+    NodeHandlerMut(BCTree* t, index_t i) noexcept;
+
+public:
+    auto tree()     const -> BCTree const& override;
+    auto tree()           -> BCTree&;
+    auto index()    const -> index_t override;
+    auto value()    const -> T const& override;
+    auto value()          -> T&;
+    auto parent()   const -> NodeHandlerConst override;
+    auto parent()         -> NodeHandlerMut;
+    auto children() const -> std::array<NodeHandlerConst, 2> override;
+    auto children()       -> std::array<NodeHandlerMut, 2>;
+
+    auto insert(T) -> NodeHandlerMut;
+
+    template <typename...Args>
+    auto emplace(Args&&...) -> NodeHandlerMut;
+};
+
+
+
+template <typename T>
+class BCTree<T>::NodeHandlerConst : public BCTree<T>::NodeHandler
+{
+    index_t         m_index;
+    BCTree const*   m_tree;
+
+    friend class BCTree<T>;
+    NodeHandlerConst(BCTree const* t, index_t i) noexcept;
+
+public:
+    auto tree()     const -> BCTree const& override;
+    auto index()    const -> index_t override;
+    auto value()    const -> T const& override;
+    auto parent()   const -> NodeHandlerConst override;
+    auto children() const -> std::array<NodeHandlerConst, 2> override;
 };
 
 

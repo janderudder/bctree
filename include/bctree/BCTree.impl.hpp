@@ -15,7 +15,7 @@ noexcept:
 
 ////////////////////////////////////////////////////////////////////////////////
  template <typename T>
-auto BCTree<T>::node(index_t index) const -> NodeHandler
+auto BCTree<T>::node(index_t index) const -> NodeHandlerConst
 {
     return {this, index};
 }
@@ -23,7 +23,7 @@ auto BCTree<T>::node(index_t index) const -> NodeHandler
 
 
  template <typename T>
-auto BCTree<T>::node(index_t index) -> NodeHandler
+auto BCTree<T>::node(index_t index) -> NodeHandlerMut
 {
     return {this, index};
 }
@@ -41,26 +41,26 @@ auto BCTree<T>::size() const -> size_t
  template <typename T>
 auto BCTree<T>::contains(NodeHandler const& node) const -> bool
 {
-    return node.m_tree == this;
+    return &node.tree() == this;
 }
 
 
 
  template <typename T>
-auto BCTree<T>::insert(index_t parent_index, T value) -> NodeHandler
+auto BCTree<T>::insert(index_t parent_index, T value) -> NodeHandlerMut
 {
     m_values.push_back(std::move(value));
 
     auto const node_index = m_relations.size();
     _set_relations(node_index, parent_index);
 
-    return NodeHandler{this, node_index};
+    return NodeHandlerMut{this, node_index};
 }
 
 
 
  template <typename T>
-auto BCTree<T>::insert(NodeHandler const& parent, T value) -> NodeHandler
+auto BCTree<T>::insert(NodeHandler const& parent, T value) -> NodeHandlerMut
 {
     return insert(parent.m_index, std::move(value));
 }
@@ -69,21 +69,21 @@ auto BCTree<T>::insert(NodeHandler const& parent, T value) -> NodeHandler
 
  template <typename T>
     template <typename...Args>
-auto BCTree<T>::emplace(index_t parent_index, Args&&... args) -> NodeHandler
+auto BCTree<T>::emplace(index_t parent_index, Args&&... args) -> NodeHandlerMut
 {
     m_values.emplace_back(std::forward<Args>(args)...);
 
     auto const node_index = m_relations.size();
     _set_relations(node_index, parent_index);
 
-    return NodeHandler{this, node_index};
+    return NodeHandlerMut{this, node_index};
 }
 
 
 
  template <typename T>
     template <typename...Args>
-auto BCTree<T>::emplace(NodeHandler const& parent, Args&&... args) -> NodeHandler
+auto BCTree<T>::emplace(NodeHandler const& parent, Args&&... args) -> NodeHandlerMut
 {
     return emplace(parent.m_index, std::forward<Args>(args)...);
 }
@@ -124,15 +124,15 @@ void BCTree<T>::_set_relations(index_t node_index, index_t parent_index)
 
 ////////////////////////////////////////////////////////////////////////////////
  template <typename T>
-BCTree<T>::NodeHandler::NodeHandler(BCTree* t, index_t i) noexcept:
-    m_tree  {t},
-    m_index {i}
+BCTree<T>::NodeHandlerMut::NodeHandlerMut(BCTree* t, index_t i) noexcept:
+    m_index {i},
+    m_tree  {t}
 {}
 
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::tree() const -> BCTree const&
+auto BCTree<T>::NodeHandlerMut::tree() const -> BCTree const&
 {
     return *m_tree;
 }
@@ -140,15 +140,7 @@ auto BCTree<T>::NodeHandler::tree() const -> BCTree const&
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::tree() -> BCTree&
-{
-    return *m_tree;
-}
-
-
-
- template <typename T>
-auto BCTree<T>::NodeHandler::index() const -> index_t
+auto BCTree<T>::NodeHandlerMut::index() const -> index_t
 {
     return m_index;
 }
@@ -156,7 +148,15 @@ auto BCTree<T>::NodeHandler::index() const -> index_t
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::value() const -> T const&
+auto BCTree<T>::NodeHandlerMut::tree() -> BCTree&
+{
+    return *m_tree;
+}
+
+
+
+ template <typename T>
+auto BCTree<T>::NodeHandlerMut::value() const -> T const&
 {
     return m_tree->m_values[m_index];
 }
@@ -164,7 +164,7 @@ auto BCTree<T>::NodeHandler::value() const -> T const&
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::value() -> T&
+auto BCTree<T>::NodeHandlerMut::value() -> T&
 {
     return m_tree->m_values[m_index];
 }
@@ -172,7 +172,15 @@ auto BCTree<T>::NodeHandler::value() -> T&
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::parent() const -> NodeHandler
+auto BCTree<T>::NodeHandlerMut::parent() const -> NodeHandlerConst
+{
+    return static_cast<BCTree const*>(m_tree)->node(m_tree->m_relations[m_index].parent);
+}
+
+
+
+ template <typename T>
+auto BCTree<T>::NodeHandlerMut::parent() -> NodeHandlerMut
 {
     return m_tree->node(m_tree->m_relations[m_index].parent);
 }
@@ -180,16 +188,25 @@ auto BCTree<T>::NodeHandler::parent() const -> NodeHandler
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::children() const -> std::array<NodeHandler, 2>
+auto BCTree<T>::NodeHandlerMut::children() const -> std::array<NodeHandlerConst, 2>
 {
     auto const& [child1, child2] = m_tree->m_relations[m_index].children;
-    return {NodeHandler{m_tree, child1}, NodeHandler{m_tree, child2}};
+    return {NodeHandlerConst{m_tree, child1}, NodeHandlerConst{m_tree, child2}};
 }
 
 
 
  template <typename T>
-auto BCTree<T>::NodeHandler::insert(T value) -> NodeHandler
+auto BCTree<T>::NodeHandlerMut::children() -> std::array<NodeHandlerMut, 2>
+{
+    auto const& [child1, child2] = m_tree->m_relations[m_index].children;
+    return {NodeHandlerMut{m_tree, child1}, NodeHandlerMut{m_tree, child2}};
+}
+
+
+
+ template <typename T>
+auto BCTree<T>::NodeHandlerMut::insert(T value) -> NodeHandlerMut
 {
     return m_tree->insert(m_index, std::move(value));
 }
@@ -198,7 +215,59 @@ auto BCTree<T>::NodeHandler::insert(T value) -> NodeHandler
 
  template <typename T>
     template <typename...Args>
-auto BCTree<T>::NodeHandler::emplace(Args&&... args) -> NodeHandler
+auto BCTree<T>::NodeHandlerMut::emplace(Args&&... args) -> NodeHandlerMut
 {
     return m_tree->emplace(m_index, std::forward<Args>(args)...);
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+template <typename T>
+BCTree<T>::NodeHandlerConst::NodeHandlerConst(BCTree const* t, index_t i)
+noexcept:
+    m_index {i},
+    m_tree  {t}
+{
+}
+
+
+
+template <typename T>
+auto BCTree<T>::NodeHandlerConst::tree() const -> BCTree const&
+{
+    return *m_tree;
+}
+
+
+
+template <typename T>
+auto BCTree<T>::NodeHandlerConst::index() const -> index_t
+{
+    return m_index;
+}
+
+
+
+ template <typename T>
+auto BCTree<T>::NodeHandlerConst::value() const -> T const&
+{
+    return m_tree->m_values[m_index];
+}
+
+
+
+ template <typename T>
+auto BCTree<T>::NodeHandlerConst::parent() const -> NodeHandlerConst
+{
+    return m_tree->node(m_tree->m_relations[m_index].parent);
+}
+
+
+
+ template <typename T>
+auto BCTree<T>::NodeHandlerConst::children() const -> std::array<NodeHandlerConst, 2>
+{
+    auto const& [child1, child2] = m_tree->m_relations[m_index].children;
+    return {NodeHandlerConst{m_tree, child1}, NodeHandlerConst{m_tree, child2}};
 }
