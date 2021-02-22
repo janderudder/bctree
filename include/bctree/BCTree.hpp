@@ -35,7 +35,7 @@ public:
     auto node(index_t) const -> NodeHandler;
     auto node(index_t) -> NodeHandler;
     auto size() const -> size_t;
-    auto contains(NodeHandler const& node) -> bool;
+    auto contains(NodeHandler const& node) const -> bool;
 
     auto insert(T&&, index_t parent) -> NodeHandler;
     auto insert(T&&, NodeHandler const& parent) -> NodeHandler;

@@ -28,7 +28,7 @@ auto BCTree<T>::size() const -> size_t
 
 
  template <typename T>
-auto BCTree<T>::contains(NodeHandler const& node) -> bool
+auto BCTree<T>::contains(NodeHandler const& node) const -> bool
 {
     return node.m_tree == this;
 }
